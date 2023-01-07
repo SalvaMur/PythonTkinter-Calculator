@@ -34,8 +34,8 @@ class keyButton:
             i = 2 # Skip the first ',' at str[1]
             while str.find(",", i) != -1:
                     i = str.find(",", i)
-                    str = str[:i] +str[i + 1] +"," +str[i + 2:]
-                    i = str.find(",", i) + 1
+                    str = str[0 : i] +str[i + 1] +"," +str[i + 2:]
+                    i += 2
         else:
             str += self.text
 
@@ -43,8 +43,8 @@ class keyButton:
                 i = 0
                 while str.find(",", i) != -1:
                     i = str.find(",", i)
-                    str = str[:i] +str[i + 1] +"," +str[i + 2:]
-                    i = str.find(",", i) + 1
+                    str = str[0 : i] +str[i + 1] +"," +str[i + 2:]
+                    i += 2
         
         self.entryInstance.set(str)
 
@@ -54,15 +54,20 @@ class calcApp:
         self.root.geometry("640x480")
         self.root.title("MyCalculator")
 
+        # Create area where history is displayed
+        self.history = tk.StringVar(master= self.root, value= "")
+        self.historyDisplay = tk.Label(master= self.root)
+        self.historyDisplay.pack()
+
         # Create area where results and input are displayed
-        self.entryText = tk.StringVar(self.root, "0")
-        self.display = tk.Label(self.root, textvariable= self.entryText)
-        self.display.pack()
+        self.entryText = tk.StringVar(master= self.root, value= "0")
+        self.entryDisplay = tk.Label(master= self.root, textvariable= self.entryText)
+        self.entryDisplay.pack()
 
         # Create Frame that contains button keys
-        self.keyPad = tk.Frame(master=  self.root)
+        self.keyPad = tk.Frame(master= self.root)
         for i in range(4):
-            self.keyPad.columnconfigure(i, weight=1)
+            self.keyPad.columnconfigure(index= i, weight=1)
 
         # Create numkeys 0 to 9, and insert them into keys dictionary
         self.numKeys = {
@@ -74,17 +79,93 @@ class calcApp:
         for i in range(3):
             offset = 2
             for j in range(3):
-                self.numKeys[str(key - offset)].button.grid(row= (i + 1), column= j, sticky=(tk.W + tk.E))
+                self.numKeys[str(key - offset)].button.grid(row= (i + 2), column= j, sticky=(tk.W + tk.E))
                 offset -= 1
 
             key -= 3
 
-        self.numKeys["0"].button.grid(row= 4, column= 0, columnspan= 2, sticky= (tk.W + tk.E))
+        self.numKeys["0"].button.grid(row= 5, column= 0, columnspan= 2, sticky= (tk.W + tk.E))
+
+        # Create dictionary for keys that are not for numbers
+        self.keys = {}
+
+        self.keys["BACKSPACE"] = tk.Button(master= self.keyPad, text= "DEL", command= self.deleteSingle)
+        self.keys["BACKSPACE"].grid(row= 0, column= 2, sticky= (tk.W + tk.E))
+
+        self.keys["CLEAR"] = tk.Button(master= self.keyPad, text= "CLEAR", command= self.deleteAll)
+        self.keys["CLEAR"].grid(row= 1, column= 2, sticky= (tk.W + tk.E))
+
+        self.keys["."] = tk.Button(master= self.keyPad, text= ".", command= self.insertDecimal)
+        self.keys["."].grid(row= 5, column= 2, sticky= (tk.W + tk.E))
+
+        self.keys["/"] = tk.Button(master= self.keyPad, text= "/", command= self.opDivide)
+        self.keys["/"].grid(row= 0, column= 3, sticky= (tk.W + tk.E))
+
+        self.keys["*"] = tk.Button(master= self.keyPad, text= "*", command= self.opMultiply)
+        self.keys["*"].grid(row= 1, column= 3, sticky= (tk.W + tk.E))
+
+        self.keys["-"] = tk.Button(master= self.keyPad, text= "-", command= self.opSubtract)
+        self.keys["-"].grid(row= 2, column= 3, sticky= (tk.W + tk.E))
+
+        self.keys["+"] = tk.Button(master= self.keyPad, text= "+", command= self.opAdd)
+        self.keys["+"].grid(row= 3, column= 3, sticky= (tk.W + tk.E))
+
+        self.keys["="] = tk.Button(master= self.keyPad, text= "=", command= self.calculate)
+        self.keys["="].grid(row= 4, rowspan= 2, column= 3, sticky= (tk.NSEW))
 
         self.keyPad.pack(fill="x")
 
         self.root.mainloop()
-            
+    
+    def deleteSingle(self):
+        str = self.entryText.get()
+        strLen = len(str.replace(",", ""))
+        
+        if strLen == 1 and str == "0":
+            return None
+
+        if strLen == 1 and str != "0":
+            self.entryText.set("0")
+            return None
+
+        str = str[:len(str) - 1]
+
+        if strLen <= 3:
+            self.entryText.set(str)
+            return None
+
+        i = 0
+        while str.find(",", i) != -1:
+            i = str.find(",", i)
+            str = str[0 : i - 1] +"," +str[i - 1] +str[i + 1:]
+
+            # If ',' is at the start, remove it (ex. 1,231 -> ,123)
+            if str[0] == ",":
+                str = str[1:]
+                i -= 1 # Realing index to match modified 'str', which is off by one
+
+        self.entryText.set(str)
+
+    def deleteAll(self):
+        self.entryText.set("0")
+
+    def insertDecimal(self):
+        print("Decimal")
+
+    def opDivide(self):
+        print("DIVIDE")
+
+    def opMultiply(self):
+        print("MULTIPLY")
+
+    def opSubtract(self):
+        print("SUBTRACT")
+
+    def opAdd(self):
+        print("ADD")
+
+    def calculate(self):
+        print("Equal")
     
 def main():
     app = calcApp()
