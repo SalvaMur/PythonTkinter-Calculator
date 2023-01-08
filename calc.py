@@ -4,6 +4,7 @@
 #   GUI interface.
 
 import tkinter as tk
+from decimal import Decimal
 
 # Construct key button
 class keyButton:
@@ -55,8 +56,9 @@ class calcApp:
         self.root.title("MyCalculator")
 
         # Create area where history is displayed
-        self.history = tk.StringVar(master= self.root, value= "")
-        self.historyDisplay = tk.Label(master= self.root)
+        self.historyNum = None
+        self.historyText = tk.StringVar(master= self.root, value= "")
+        self.historyDisplay = tk.Label(master= self.root, textvariable= self.historyText)
         self.historyDisplay.pack()
 
         # Create area where results and input are displayed
@@ -113,6 +115,7 @@ class calcApp:
         self.keys["="] = tk.Button(master= self.keyPad, text= "=", command= self.calculate)
         self.keys["="].grid(row= 4, rowspan= 2, column= 3, sticky= (tk.NSEW))
 
+        # Pack keyPad frame
         self.keyPad.pack(fill="x")
 
         self.root.mainloop()
@@ -130,10 +133,12 @@ class calcApp:
 
         str = str[:len(str) - 1]
 
+        # If no commas, simply set and leave
         if strLen <= 3:
             self.entryText.set(str)
             return None
 
+        # Update commas by moving them to the left by one index
         i = 0
         while str.find(",", i) != -1:
             i = str.find(",", i)
@@ -146,23 +151,76 @@ class calcApp:
 
         self.entryText.set(str)
 
+    # Function that takes a integer/decimal and returns it back as a string with commas
+    def addCommas(self, num):
+        strNum = str(num)
+        strLen = len(strNum)
+
+        # If number does not need commas, return
+        if strLen <= 3:
+            return strNum
+
+        # 
+        strNum = strNum[::-1]
+        i = 0
+        j = strLen
+        numOfCommas = 0
+        while i < j:
+            if ((i + 1) - numOfCommas) % 3 == 1 and (i + 1) > 3:
+                strNum = strNum[0 : i] +"," +strNum[i:]
+                i += 1
+                j += 1
+                numOfCommas += 1
+            
+            i += 1
+
+        return strNum[::-1]
+
     def deleteAll(self):
+        if self.entryText.get() == "0":
+            self.historyNum = None
+            self.historyText.set("")
+
         self.entryText.set("0")
 
     def insertDecimal(self):
         print("Decimal")
 
     def opDivide(self):
-        print("DIVIDE")
+        entry = self.entryText.get()
+        self.historyText.set(self.historyText.get() +" " +entry +" /")
+
+        if self.historyNum is None:
+            self.historyNum = Decimal(entry.replace(",", ""))
+        else:
+            self.historyNum /= Decimal(entry.replace(",", ""))
+
+        self.entryText.set(self.addCommas(self.historyNum))
 
     def opMultiply(self):
-        print("MULTIPLY")
+        entry = self.entryText.get()
+        self.historyText.set(self.historyText.get() +" " +entry +" *")
+        
+        if self.historyNum is None:
+            self.historyNum = Decimal(entry.replace(",", ""))
+        else:
+            self.historyNum *= Decimal(entry.replace(",", ""))
+
+        self.entryText.set(self.addCommas(self.historyNum))
 
     def opSubtract(self):
         print("SUBTRACT")
 
     def opAdd(self):
-        print("ADD")
+        entry = self.entryText.get()
+        self.historyText.set(self.historyText.get() +" " +entry +" +")
+        
+        if self.historyNum is None:
+            self.historyNum = Decimal(entry.replace(",", ""))
+        else:
+            self.historyNum += Decimal(entry.replace(",", ""))
+
+        self.entryText.set(self.addCommas(self.historyNum))
 
     def calculate(self):
         print("Equal")
