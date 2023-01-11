@@ -12,56 +12,6 @@ class keyLock:
     def __init__(self):
         self.state = False
 
-# Construct key button
-class keyButton:
-    def __init__(self, master, text, entryInstance, lockInstance):
-        self.keyLock = lockInstance
-        self.entryInstance = entryInstance
-        self.text = text
-        self.button = tk.Button(master= master, text= text, command= self.insertEntry)
-
-    # Button entry command for number keys
-    def insertEntry(self):
-        str = self.entryInstance.get()
-        strLen = len(str.replace(",", "")) # Length of numbers minus commas
-
-        # If lock for operation keys is on, replace entry with text
-        if self.keyLock.state:
-            self.entryInstance.set(self.text)
-            self.keyLock.state = False
-            return None
-
-        # Prevent appending 0's if current entry string is 0
-        if strLen == 1 and str == "0" and self.text == "0":
-            return None
-        
-        # If current entry string is just 0 and text entered is not 0, then replace entry with text
-        if strLen == 1 and str == "0" and self.text != "0":
-            self.entryInstance.set(self.text)
-            return None
-
-        # Appends text entered and handles commas
-        if (strLen + 1) % 3 == 1 and (strLen + 1) > 3:
-            str = str[0] +"," +str[1:]
-            str += self.text
-
-            i = 2 # Skip the first ',' at str[1]
-            while str.find(",", i) != -1:
-                    i = str.find(",", i)
-                    str = str[0 : i] +str[i + 1] +"," +str[i + 2:]
-                    i += 2
-        else:
-            str += self.text
-
-            if (strLen + 1) > 3:
-                i = 0
-                while str.find(",", i) != -1:
-                    i = str.find(",", i)
-                    str = str[0 : i] +str[i + 1] +"," +str[i + 2:]
-                    i += 2
-        
-        self.entryInstance.set(str)
-
 class calcApp:
     def __init__(self):
         self.root = tk.Tk()
@@ -69,7 +19,6 @@ class calcApp:
         self.root.title("MyCalculator")
 
         # Create area where history is displayed
-        self.resultNum = None
         self.historyText = tk.StringVar(master= self.root, value= "")
         self.historyDisplay = tk.Label(master= self.root, textvariable= self.historyText)
         self.historyDisplay.pack()
@@ -79,6 +28,10 @@ class calcApp:
         self.entryDisplay = tk.Label(master= self.root, textvariable= self.entryText)
         self.entryDisplay.pack()
 
+        # For calculating entry with the recently done operation
+        self.recentOp = ""
+        self.recentNum = "0"
+
         # Create lock for operation keys, default value is False
         self.keyLock = keyLock()
 
@@ -87,9 +40,9 @@ class calcApp:
         for i in range(4):
             self.keyPad.columnconfigure(index= i, weight=1)
 
-        # Create numkeys 0 to 9, and insert them into keys dictionary
+        # Create numkeys 0 to 9, and insert them into numKeys dictionary
         self.numKeys = {
-            str(num): keyButton(self.keyPad, str(num), self.entryText, self.keyLock) for num in range(10)
+            str(num): tk.Button(master= self.keyPad, text= str(num), command= lambda num=num: self.insertEntry(str(num))) for num in range(10)
         }
         
         # Nested loops that grids numKey buttons within keyPad frame
@@ -97,12 +50,12 @@ class calcApp:
         for i in range(3):
             offset = 2
             for j in range(3):
-                self.numKeys[str(key - offset)].button.grid(row= (i + 2), column= j, sticky=(tk.W + tk.E))
+                self.numKeys[str(key - offset)].grid(row= (i + 2), column= j, sticky=(tk.W + tk.E))
                 offset -= 1
 
             key -= 3
 
-        self.numKeys["0"].button.grid(row= 5, column= 0, columnspan= 2, sticky= (tk.W + tk.E))
+        self.numKeys["0"].grid(row= 5, column= 1, sticky= (tk.W + tk.E))
 
         # Create dictionary for keys that are not for numbers
         self.keys = {}
@@ -113,22 +66,31 @@ class calcApp:
         self.keys["CLEAR"] = tk.Button(master= self.keyPad, text= "CLEAR", command= self.deleteAll)
         self.keys["CLEAR"].grid(row= 1, column= 2, sticky= (tk.W + tk.E))
 
-        self.keys["."] = tk.Button(master= self.keyPad, text= ".", command= self.insertDecimal)
+        self.keys["+/-"] = tk.Button(master= self.keyPad, text= "+/-", command= self.test)
+        self.keys["+/-"].grid(row= 5, column= 0, sticky= (tk.W + tk.E))
+
+        self.keys["("] = tk.Button(master= self.keyPad, text= "(", command= self.test)
+        self.keys["("].grid(row= 1, column= 0, sticky= (tk.W + tk.E))
+
+        self.keys[")"] = tk.Button(master= self.keyPad, text= ")", command= self.test)
+        self.keys[")"].grid(row= 1, column= 1, sticky= (tk.W + tk.E))
+
+        self.keys["."] = tk.Button(master= self.keyPad, text= ".", command= self.test)
         self.keys["."].grid(row= 5, column= 2, sticky= (tk.W + tk.E))
 
-        self.keys["/"] = tk.Button(master= self.keyPad, text= "/", command= self.opDivide)
+        self.keys["/"] = tk.Button(master= self.keyPad, text= "/", command= lambda: self.insertOperator("/"))
         self.keys["/"].grid(row= 0, column= 3, sticky= (tk.W + tk.E))
 
-        self.keys["*"] = tk.Button(master= self.keyPad, text= "*", command= self.opMultiply)
+        self.keys["*"] = tk.Button(master= self.keyPad, text= "*", command= lambda: self.insertOperator("*"))
         self.keys["*"].grid(row= 1, column= 3, sticky= (tk.W + tk.E))
 
-        self.keys["-"] = tk.Button(master= self.keyPad, text= "-", command= self.opSubtract)
+        self.keys["-"] = tk.Button(master= self.keyPad, text= "-", command= lambda: self.insertOperator("-"))
         self.keys["-"].grid(row= 2, column= 3, sticky= (tk.W + tk.E))
 
-        self.keys["+"] = tk.Button(master= self.keyPad, text= "+", command= self.opAdd)
+        self.keys["+"] = tk.Button(master= self.keyPad, text= "+", command= lambda: self.insertOperator("+"))
         self.keys["+"].grid(row= 3, column= 3, sticky= (tk.W + tk.E))
 
-        self.keys["="] = tk.Button(master= self.keyPad, text= "=", command= self.opEqual)
+        self.keys["="] = tk.Button(master= self.keyPad, text= "=", command= self.equalOp)
         self.keys["="].grid(row= 4, rowspan= 2, column= 3, sticky= (tk.NSEW))
 
         # Pack keyPad frame
@@ -136,140 +98,110 @@ class calcApp:
 
         self.root.mainloop()
 
-    # Function that takes a integer/decimal and returns it back as a string with commas
-    def addCommas(self, num):
-        strNum = str(num)
-        strLen = len(strNum)
+    def test(self):
+        pass
 
-        # If number does not need commas, return
-        if strLen <= 3 or strNum.find("E+") != -1:
-            return strNum
+    # Function that changes button background color switching
+    def changeButtonColor(self, state):
+        items = ["/", "*", "-", "+"]
 
-        # 
-        strNum = strNum[::-1]
-        i = 0
-        numOfCommas = 0
-        while i < strLen:
-            if ((i + 1) - numOfCommas) % 3 == 1 and (i + 1) > 3:
-                strNum = strNum[0 : i] +"," +strNum[i:]
-                i += 1
-                strLen += 1
-                numOfCommas += 1
-            
-            i += 1
+        if state is True:
+            for i in items:
+                self.keys[i].configure(bg= "red")
 
-        return strNum[::-1]
+        if state is False:
+            for i in items:
+                self.keys[i].configure(bg= "#F0F0F0")
 
-    def calculate(self, lNum, rNum):
-        if lNum is None:
-            return rNum
-        
-        op = self.historyText.get()[len(self.historyText.get()) - 1]
+    # Function that handles the insertion of numbers being inserted
+    def insertEntry(self, entry):
+        history = self.historyText.get()
 
-        if op == "+":
-            return lNum + rNum
-        elif op == "-":
-            return lNum - rNum
-        elif op == "*":
-            return lNum * rNum
-        elif op == "/":
-            return lNum / rNum
+        if len(history) > 0 and history[len(history) - 1] == "=":
+            self.historyText.set("")
+            self.entryText.set(entry)
+            self.recentNum = entry
+            self.keyLock.state = False
+            self.changeButtonColor(self.keyLock.state)
+
+        elif self.keyLock.state is True:
+            self.entryText.set(entry)
+            self.recentNum = entry
+            self.keyLock.state = False
+            self.changeButtonColor(self.keyLock.state)
+
+        else:
+            newEntry = self.entryText.get().replace(",", "") +entry
+            self.recentNum = "{:,}".format(Decimal(newEntry))
+            self.entryText.set("{:,}".format(Decimal(newEntry)))
+
+    # Function that handles the insertion of operators being inserted
+    def insertOperator(self, op):
+        history = self.historyText.get()
+        entry = self.entryText.get()
+
+        if len(history) > 0 and history[len(history) - 1] == "=":
+            self.historyText.set(entry +" " +op)
+            self.recentOp = op
+            self.keyLock.state = True
+            self.changeButtonColor(self.keyLock.state)
+
+
+        elif self.keyLock.state is True:
+            self.historyText.set(history[0 : len(history) - 1] +op)
+            self.recentOp = op
+
+        else:
+            self.keyLock.state = True
+            self.changeButtonColor(self.keyLock.state)
+            result = eval(history.replace(",", "") +entry.replace(",", ""))
+            self.recentOp = op
+            self.recentNum = "{:,}".format(result)
+            self.historyText.set(history +" " +entry +" " +op)
+            self.entryText.set("{:,}".format(result))
     
-    def deleteSingle(self):
-        str = self.entryText.get()
-        strLen = len(str.replace(",", ""))
+    # Function that handles the several behaviours of the '=' operation
+    def equalOp(self):
+        history = self.historyText.get()
+        entry = self.entryText.get()
+
+        if self.recentOp == "":
+            pass
         
-        if strLen == 1 and str == "0":
+        elif len(history) > 0 and history[len(history) - 1] == "=":
+            result = eval(entry.replace(",", "") +self.recentOp +self.recentNum.replace(",", ""))
+            self.historyText.set(entry +" " +self.recentOp +" "  +self.recentNum +" =")
+            self.entryText.set("{:,}".format(result))
+
+        else:
+            result = eval(history.replace(",", "") +entry.replace(",", ""))
+            self.historyText.set(history +" " +entry +" =")
+            self.entryText.set("{:,}".format(result))
+
+    # Function that deletes 1-character from the entry text
+    def deleteSingle(self):
+        entry = self.entryText.get().replace(",", "")
+        
+        if len(entry) == 1 and entry == "0":
             return None
 
-        if strLen == 1 and str != "0":
+        if len(entry) == 1 and entry != "0":
             self.entryText.set("0")
             return None
 
-        str = str[:len(str) - 1]
+        entry = "{:,}".format(Decimal(entry[:len(entry) - 1])) # Bug with negatives
+        self.recentNum = entry
+        self.entryText.set(entry)
 
-        # If no commas, simply set and leave
-        if strLen <= 3:
-            self.entryText.set(str)
-            return None
-
-        # Update commas by moving them to the left by one index
-        i = 0
-        while str.find(",", i) != -1:
-            i = str.find(",", i)
-            str = str[0 : i - 1] +"," +str[i - 1] +str[i + 1:]
-
-            # If ',' is at the start, remove it (ex. 1,231 -> ,123)
-            if str[0] == ",":
-                str = str[1:]
-                i -= 1 # Realing index to match modified 'str', which is off by one
-
-        self.entryText.set(str)
-
-    def deleteAll(self):
-        if self.entryText.get() == "0":
-            self.resultNum = None
+    # Function that handles clearing of entry and history
+    def deleteAll(self): # FIX! maybe add other button
+        entry = self.entryText.get()
+        if entry == "0":
             self.historyText.set("")
 
         self.entryText.set("0")
         self.keyLock.state = False
-
-    def insertDecimal(self):
-        print("Decimal")
-
-    def opDivide(self):
-        if self.keyLock.state:
-            self.historyText.set(self.historyText.get()[0 : len(self.historyText.get()) - 1] + "/")
-            return None
-        else:
-            self.keyLock.state = True
-
-        entry = self.entryText.get()
-        self.resultNum = self.calculate(self.resultNum, Decimal(entry.replace(",", "")))
-        self.historyText.set(self.historyText.get() +" " +entry +" /")
-        self.entryText.set(self.addCommas(self.resultNum))
-
-    def opMultiply(self):
-        if self.keyLock.state:
-            self.historyText.set(self.historyText.get()[0 : len(self.historyText.get()) - 1] + "*")
-            return None
-        else:
-            self.keyLock.state = True
-
-        entry = self.entryText.get()
-        self.resultNum = self.calculate(self.resultNum, Decimal(entry.replace(",", "")))
-        self.historyText.set(self.historyText.get() +" " +entry +" *")
-        self.entryText.set(self.addCommas(self.resultNum))
-
-    def opSubtract(self):
-        if self.keyLock.state:
-            self.historyText.set(self.historyText.get()[0 : len(self.historyText.get()) - 1] + "-")
-            return None
-        else:
-            self.keyLock.state = True
-
-        entry = self.entryText.get()
-        self.resultNum = self.calculate(self.resultNum, Decimal(entry.replace(",", "")))
-        self.historyText.set(self.historyText.get() +" " +entry +" -")
-        self.entryText.set(self.addCommas(self.resultNum))
-
-    def opAdd(self):
-        if self.keyLock.state:
-            self.historyText.set(self.historyText.get()[0 : len(self.historyText.get()) - 1] + "+")
-            return None
-        else:
-            self.keyLock.state = True
-
-        entry = self.entryText.get()
-        self.resultNum = self.calculate(self.resultNum, Decimal(entry.replace(",", "")))
-        self.historyText.set(self.historyText.get() +" " +entry +" +")
-        self.entryText.set(self.addCommas(self.resultNum))
-
-    def opEqual(self):
-        entry = self.entryText.get()
-        self.resultNum = self.calculate(self.resultNum, Decimal(entry.replace(",", "")))
-        self.historyText.set(self.historyText.get() +" " +entry +" =")
-        self.entryText.set(self.addCommas(self.resultNum))
+        self.changeButtonColor(self.keyLock.state)
     
 def main():
     app = calcApp()
