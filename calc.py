@@ -12,7 +12,9 @@ class calcApp:
         self.root.geometry("640x480")
         self.root.title("MyCalculator")
 
-        self.displayFrame = tk.Frame(master= self.root)
+        self.appFrame = tk.Frame(master= self.root)
+
+        self.displayFrame = tk.Frame(master= self.appFrame)
 
         # Create label where history is displayed
         self.historyText = tk.StringVar(master= self.root, value= "")
@@ -30,7 +32,7 @@ class calcApp:
         self.keyLock = False
 
         # Create Frame that contains button keys
-        self.keyPad = tk.Frame(master= self.root)
+        self.keyPad = tk.Frame(master= self.appFrame)
         for i in range(4):
             self.keyPad.columnconfigure(index= i, weight=1)
 
@@ -87,7 +89,36 @@ class calcApp:
         # Pack keyPad frame
         self.keyPad.pack(fill="x")
 
+        self.appFrame.pack(fill="both")
+
+        self.root.bind("<Key>", self.keyboardInput)
+
         self.root.mainloop()
+
+    def keyboardInput(self, event):
+        keyOp = ['/', '*', '-', '+']
+        numKeys = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+        if event.keysym == "Return":
+            self.equalOp()
+
+        elif event.char in keyOp:
+            self.insertOperator(event.char)
+        
+        elif event.char in numKeys:
+            self.insertEntry(event.char)
+
+        elif event.keysym == "period":
+            self.insertDecimal()
+
+        elif event.keysym == "BackSpace":
+            self.deleteSingle()
+
+        elif event.state == 262153 and event.keysym == "Delete":
+            self.deleteHistory()
+
+        elif event.state == 262152 and event.keysym == "Delete":
+            self.deleteEntry()
 
     # Function that changes button background color switching
     def changeButtonColor(self, state):
@@ -195,8 +226,7 @@ class calcApp:
             entry = entry +"."
             self.entryText.set(entry)
         else:
-            entry = entry[0 : entry.find(".")]
-            self.entryText.set(entry)
+            pass
 
     # Function that deletes 1-character from the entry text
     def deleteSingle(self):
