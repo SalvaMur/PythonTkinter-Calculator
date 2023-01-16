@@ -25,9 +25,11 @@ class calcApp:
         self.root.title("Basic Calculator")
         self.root.iconbitmap("BasicCalculator.ico")
 
+        # Frame that contains all widgets.
         self.appFrame = tk.Frame(master= self.root)
         #self.appFrame.configure(bg= "red", borderwidth= 2) # Uncomment to see frame
 
+        # Frame that contains the display labels
         self.displayFrame = tk.Frame(master= self.appFrame)
         #self.displayFrame.configure(bg= "blue", borderwidth= 2) # Uncomment to see frame
 
@@ -148,6 +150,7 @@ class calcApp:
 
         self.root.mainloop()
 
+    # Function that handles keyboard input
     def keyboardInput(self, event):
         keyOp = ['/', '*', '-', '+']
         numKeys = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -305,7 +308,7 @@ class calcApp:
         self.keyLock = False
         self.changeButtonColor(self.keyLock)
 
-    # Function that clears history
+    # Function that clears history label and entry label
     def deleteAll(self):
         self.historyText.set("")
         self.entryText.set("0")
