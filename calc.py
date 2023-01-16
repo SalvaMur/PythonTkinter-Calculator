@@ -6,39 +6,68 @@
 import tkinter as tk
 from decimal import Decimal
 
+# Font styles
+LARGE_FONT = "Arial 40 bold"
+SMALL_FONT = "Arial 20"
+BUTTON_FONT = "Arial 14"
+
+# Colors
+HISTORY_TEXT_COLOR = "gray"
+OPERATOR_COLOR = "orange"
+ALT_OPERATOR_COLOR = "yellow"
+EQUAL_BUTTON_COLOR = "light blue"
+
 class calcApp:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.geometry("640x480")
-        self.root.title("MyCalculator")
+        self.root.geometry("322x502")
+        self.root.resizable(width= False, height= False)
+        self.root.title("Basic Calculator")
+        self.root.iconbitmap("BasicCalculator.ico")
 
         self.appFrame = tk.Frame(master= self.root)
+        #self.appFrame.configure(bg= "red", borderwidth= 2) # Uncomment to see frame
 
         self.displayFrame = tk.Frame(master= self.appFrame)
+        #self.displayFrame.configure(bg= "blue", borderwidth= 2) # Uncomment to see frame
 
         # Create label where history is displayed
         self.historyText = tk.StringVar(master= self.root, value= "")
-        self.historyDisplay = tk.Label(master= self.displayFrame, textvariable= self.historyText, anchor= tk.E)
-        self.historyDisplay.pack(expand= True, fill= "both", pady= 10)
+        self.historyDisplay = tk.Label(master= self.displayFrame, 
+            textvariable= self.historyText, anchor= tk.E, font= SMALL_FONT,
+            padx= 10, fg= HISTORY_TEXT_COLOR, 
+        )
+        self.historyDisplay.pack(expand= True, fill= "both")
 
         # Create label where results and input are displayed
         self.entryText = tk.StringVar(master= self.root, value= "0")
-        self.entryDisplay = tk.Label(master= self.displayFrame, textvariable= self.entryText, anchor= tk.E)
-        self.entryDisplay.pack(expand= True, fill= "both", pady= 10)
+        self.entryDisplay = tk.Label(master= self.displayFrame, 
+            textvariable= self.entryText, anchor= tk.E, font= LARGE_FONT,
+            padx= 10
+        )
+        self.entryDisplay.pack(expand= True, fill= "both")
 
-        self.displayFrame.pack(anchor= tk.E)
+        self.displayFrame.pack(expand= True, fill= "both")
 
         # Create lock for operation keys, default value is False
         self.keyLock = False
 
         # Create Frame that contains button keys
         self.keyPad = tk.Frame(master= self.appFrame)
+        #self.keyPad.configure(bg= "yellow", borderwidth= 2) # Uncomment to see frame
+
         for i in range(4):
-            self.keyPad.columnconfigure(index= i, weight=1)
+            self.keyPad.columnconfigure(index= i, weight= 1)
+
+        for i in range(6):
+            self.keyPad.rowconfigure(index= i, weight= 1)
 
         # Create numkeys 0 to 9, and insert them into numKeys dictionary
         self.numKeys = {
-            str(num): tk.Button(master= self.keyPad, text= str(num), command= lambda num=num: self.insertEntry(str(num))) for num in range(10)
+            str(num): tk.Button(master= self.keyPad, text= str(num), 
+                command= lambda num=num: self.insertEntry(str(num)),
+                font= BUTTON_FONT
+            ) for num in range(10)
         }
         
         # Nested loops that grids numKey buttons within keyPad frame
@@ -56,40 +85,64 @@ class calcApp:
         # Create dictionary for keys that are not for numbers
         self.keys = {}
 
-        self.keys["BACKSPACE"] = tk.Button(master= self.keyPad, text= u"\u2190", command= self.deleteSingle)
+        self.keys["BACKSPACE"] = tk.Button(master= self.keyPad, text= u"\u2190", 
+            command= self.deleteSingle, font= BUTTON_FONT
+        )
         self.keys["BACKSPACE"].grid(row= 0, rowspan= 2, column= 0, sticky= tk.NSEW)
 
-        self.keys["CE"] = tk.Button(master= self.keyPad, text= "CLR ENTR", command= self.deleteEntry)
+        self.keys["CE"] = tk.Button(master= self.keyPad, text= "CE", 
+            command= self.deleteEntry, font= BUTTON_FONT
+        )
         self.keys["CE"].grid(row= 0, rowspan= 2, column= 1, sticky= tk.NSEW)
 
-        self.keys["CH"] = tk.Button(master= self.keyPad, text= "CLR HIST", command= self.deleteHistory)
-        self.keys["CH"].grid(row= 0, rowspan= 2, column= 2, sticky= tk.NSEW)
+        self.keys["C"] = tk.Button(master= self.keyPad, text= "C", 
+            command= self.deleteAll, font= BUTTON_FONT
+        )
+        self.keys["C"].grid(row= 0, rowspan= 2, column= 2, sticky= tk.NSEW)
 
-        self.keys["+/-"] = tk.Button(master= self.keyPad, text= "+/-", command= self.switchSign)
+        self.keys["+/-"] = tk.Button(master= self.keyPad, text= "+/-", 
+            command= self.switchSign, font= BUTTON_FONT
+        )
         self.keys["+/-"].grid(row= 5, column= 0, sticky= tk.NSEW)
 
-        self.keys["."] = tk.Button(master= self.keyPad, text= ".", command= self.insertDecimal)
+        self.keys["."] = tk.Button(master= self.keyPad, text= ".", 
+            command= self.insertDecimal, font= BUTTON_FONT
+        )
         self.keys["."].grid(row= 5, column= 2, sticky= tk.NSEW)
 
-        self.keys["/"] = tk.Button(master= self.keyPad, text= "/", command= lambda: self.insertOperator("/"))
+        self.keys["/"] = tk.Button(master= self.keyPad, text= "/", 
+            command= lambda: self.insertOperator("/"), font= BUTTON_FONT,
+            bg= OPERATOR_COLOR
+        )
         self.keys["/"].grid(row= 0, column= 3, sticky= tk.NSEW)
 
-        self.keys["*"] = tk.Button(master= self.keyPad, text= "*", command= lambda: self.insertOperator("*"))
+        self.keys["*"] = tk.Button(master= self.keyPad, text= "*", 
+            command= lambda: self.insertOperator("*"), font= BUTTON_FONT,
+            bg= OPERATOR_COLOR
+        )
         self.keys["*"].grid(row= 1, column= 3, sticky= tk.NSEW)
 
-        self.keys["-"] = tk.Button(master= self.keyPad, text= "-", command= lambda: self.insertOperator("-"))
+        self.keys["-"] = tk.Button(master= self.keyPad, text= "-", 
+            command= lambda: self.insertOperator("-"), font= BUTTON_FONT,
+            bg= OPERATOR_COLOR
+        )
         self.keys["-"].grid(row= 2, column= 3, sticky= tk.NSEW)
 
-        self.keys["+"] = tk.Button(master= self.keyPad, text= "+", command= lambda: self.insertOperator("+"))
+        self.keys["+"] = tk.Button(master= self.keyPad, text= "+", 
+            command= lambda: self.insertOperator("+"), font= BUTTON_FONT,
+            bg= OPERATOR_COLOR
+        )
         self.keys["+"].grid(row= 3, column= 3, sticky= tk.NSEW)
 
-        self.keys["="] = tk.Button(master= self.keyPad, text= "=", command= self.equalOp)
+        self.keys["="] = tk.Button(master= self.keyPad, text= "=", 
+            command= self.equalOp, font= BUTTON_FONT, bg= EQUAL_BUTTON_COLOR
+        )
         self.keys["="].grid(row= 4, rowspan= 2, column= 3, sticky= tk.NSEW)
 
         # Pack keyPad frame
-        self.keyPad.pack(fill="x")
+        self.keyPad.pack(expand= True, fill= "both")
 
-        self.appFrame.pack(fill="both")
+        self.appFrame.pack(expand= True, fill= "both")
 
         self.root.bind("<Key>", self.keyboardInput)
 
@@ -115,7 +168,7 @@ class calcApp:
             self.deleteSingle()
 
         elif event.state == 262153 and event.keysym == "Delete":
-            self.deleteHistory()
+            self.deleteAll()
 
         elif event.state == 262152 and event.keysym == "Delete":
             self.deleteEntry()
@@ -126,11 +179,11 @@ class calcApp:
 
         if state is True:
             for i in items:
-                self.keys[i].configure(bg= "yellow")
+                self.keys[i].configure(bg= ALT_OPERATOR_COLOR)
 
         if state is False:
             for i in items:
-                self.keys[i].configure(bg= "#F0F0F0")
+                self.keys[i].configure(bg= OPERATOR_COLOR)
 
     # Function that handles the insertion of numbers being inserted
     def insertEntry(self, entry):
@@ -253,8 +306,9 @@ class calcApp:
         self.changeButtonColor(self.keyLock)
 
     # Function that clears history
-    def deleteHistory(self):
+    def deleteAll(self):
         self.historyText.set("")
+        self.entryText.set("0")
 
         self.keyLock = False
         self.changeButtonColor(self.keyLock)
